@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <script src="/socket.io/socket.io.js"></script>
+      <script type="text/javascript">
+      var currentUser = "";
+      var currentRoom = '1';
+      var socketio = io.connect();
+
+
+
+
+
+
+      socketio.on("message_to_client",function(data) {
+         //Append an HR thematic break and the escaped HTML of the new message
+         document.getElementById("chatlog").appendChild(document.createElement("hr"));
+         if (data['currentChatRoom'] == currentRoom){
+         document.getElementById("chatlog").appendChild(document.createTextNode(data['user'] + ": "+ data['message']));
+         }
+         
+      });
+
+      socketio.on("user_to_client",function(data) {
+         //Append an HR thematic break and the escaped HTML of the new message
+         document.getElementById("loggedInUsers").appendChild(document.createElement("hr"));
+         document.getElementById("loggedInUsers").appendChild(document.createTextNode(data['nickNames'] + " just logged in"));
+      });
+
+
+
+      socketio.on("newChatroom",function(data) {
+               var btn = document.createElement("button");
+               btn.innerHTML = data['newRoom'];
+               btn.onclick = function() {
+                  console.log("Clicked on chatroom: " + data['newRoom']);
+               };
+               document.getElementById("roomLog").appendChild(btn);
+      });
+
+
+      function sendMessage(){
+         var msg = document.getElementById("message_input").value;
+         socketio.emit("message_to_server", {message:msg, user:currentUser, currentChatRoom: currentRoom});
+      }
+
+
+      function createChatroom(){
+         var roomName = document.getElementById("newChatroomName").value;
+         console.log(roomName);
+         socketio.emit("newChatroom", { newRoom: roomName});
+}
+
+
+      function registerNickname(){
+         showChatElements();
+         let user = document.getElementById("nickName").value; 
+         currentUser = user
+         socketio.emit("nickName", { nickNames: user});
+
+      }
+      function changeChatRoom(value){
+         currentRoom = value;
+         console.log("Current Chat Room: " + currentRoom)
+         document.getElementById("currentRoomLabel").innerHTML = value;
+         socketio.emit("currentChatRoom", {currentChatRoom: currentRoom, nickNames: currentUser});
+      }
+
+
+
+      </script>
+   </head>
+   <body>
+
+      <button onclick = "registerNickname()">Nickname: </button>
+      <input type = "text" id = "nickName"/>
+
+      <div class = "textInput" style = "margin: 5px;">
+      <input type="text" id="message_input"/>
+      <button id = "sendmsgbtn"onclick="sendMessage()">send</button>
+      </div>
+
+
+
+
+
+      <input type="text" id="newChatroomName"/>
+      <button onclick="createChatroom()">Create Chatroom</button>
+
+      <h2 id = "currentRoomLabel"></h2>
+      <button id = "chatRoom1" value = "1"onclick="changeChatRoom(1)" >Chat Room 1</button>
+      <button id = "chatRoom2" value = "2"onclick="changeChatRoom(2)">Chat Room 2</button>
+
+      
+
+
+      <div id  = "roomLog"></div>
+      <div id = "loggedInUsers"></div>
+      
+
+      <div id="chatlog"></div>
+
+   </body>
+
+
+   <script>
+      document.getElementById("message_input").style.display = "none";
+      document.getElementById("chatRoom1").style.display = "none";
+      document.getElementById("chatRoom2").style.display = "none";
+      document.getElementById("sendmsgbtn").style.display = "none";
+
+
+      function showChatElements() {
+        document.getElementById("message_input").style.display = "inline-block";
+        document.getElementById("chatRoom1").style.display = "inline-block";
+        document.getElementById("chatRoom2").style.display = "inline-block";
+        document.getElementById("sendmsgbtn").style.display = "inline-block";
+
+      }
+   </script>
+</html>
