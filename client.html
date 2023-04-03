@@ -24,6 +24,8 @@
       var socketio = io.connect();
       var currentUser = "";
       var displayedRooms = [];
+      var usersInRooms = {};
+
       
    
 
@@ -45,19 +47,31 @@
             displayedRooms.push(rooms[i].roomName);
             let newRoom = document.createElement("button");
             newRoom.innerHTML = currentRoom;
+            newRoom.setAttribute("id", currentRoom)
+            newRoom.addEventListener("click", function() {
+                  join_room(currentRoom);
+               });
             let roomList = document.getElementById("roomListDisplay");
             roomList.appendChild(newRoom);
-            console.log(currentRoom);
             }
 
          }
 
 
       });
-   
-      socketio.on("join_room", (roomName) =>{
-        socket.join(roomName);
-      });
+      function join_room(roomName){
+      const userName = document.getElementById("user_name_login").value;
+
+               if (!usersInRooms[roomName]) {
+            usersInRooms[roomName] = [userName];
+         } else {
+            usersInRooms[roomName].push(userName);
+         }
+         
+         
+         console.log(`User ${userName} joined room ${roomName}`);
+         console.log(`Users in room ${roomName}: ${usersInRooms[roomName]}`);
+         }
 
       function sendMessage(){
          console.log("in func sendMessage");
@@ -66,11 +80,9 @@
       }
 
       function createRoom(){
-         console.log("hit");
          const roomName = document.getElementById("room_name").value;
          const password = document.getElementById("create_password").value;
          const userName = document.getElementById("user_name_login").value;
-         console.log("three" + userName + password + roomName);
          socketio.emit("create_room", {nameOfRoom: roomName, userName: userName, chatroomPassword: password}); 
       }
 
