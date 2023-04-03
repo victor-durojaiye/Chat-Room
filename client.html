@@ -1,121 +1,140 @@
 <!DOCTYPE html>
 <html>
-   <head>
-      <script src="/socket.io/socket.io.js"></script>
-      <script type="text/javascript">
-      var currentUser = "";
-      var currentRoom = '1';
+
+<head>
+   <script src="/socket.io/socket.io.js"></script>
+   <script type="text/javascript">
       var socketio = io.connect();
+      var currentUser = "";
+      var currentRoom = "";
+      let globalMessages =
+
+         socketio.on("message_to_client", function (data) {
+            //Append an HR thematic break and the escaped HTML of the new message
+            globalMessages = data.globalMessages;
+
+            const currentRoomMessages = globalMessages[currentRoom];
+            console.log(currentRoomMessages)
+               currentRoomMessages.forEach(function (i) {
+               var msgText = i.user + ": " + i.message;
+               var msgNode = document.createElement("p");
+               msgNode.appendChild(document.createTextNode(msgText));
+               document.getElementById("chatlog").appendChild(msgNode);
+               document.getElementById("chatlog").appendChild(document.createElement("br"));
+            });
 
 
 
+         });
 
 
-
-      socketio.on("message_to_client",function(data) {
+      socketio.on("set_user_to_client", function (data) {
          //Append an HR thematic break and the escaped HTML of the new message
-         document.getElementById("chatlog").appendChild(document.createElement("hr"));
-         if (data['currentChatRoom'] == currentRoom){
-         document.getElementById("chatlog").appendChild(document.createTextNode(data['user'] + ": "+ data['message']));
-         }
-         
+         currentUser = data['user'];
       });
 
-      socketio.on("user_to_client",function(data) {
+      socketio.on("set_room_to_client", function (data) {
          //Append an HR thematic break and the escaped HTML of the new message
-         document.getElementById("loggedInUsers").appendChild(document.createElement("hr"));
-         document.getElementById("loggedInUsers").appendChild(document.createTextNode(data['nickNames'] + " just logged in"));
+         currentRoom = data['room'];
       });
 
-
-
-      socketio.on("newChatroom",function(data) {
-               var btn = document.createElement("button");
-               btn.innerHTML = data['newRoom'];
-               btn.onclick = function() {
-                  console.log("Clicked on chatroom: " + data['newRoom']);
-               };
-               document.getElementById("roomLog").appendChild(btn);
+      socketio.on("new_public_room", function (data) {
+         //Append an HR thematic break and the escaped HTML of the new message
+         currentRoom = data['room'];
+         let newRoom = document.createElement("button");
+         newRoom.setAttribute("id", data['room']);
+         newRoom.innerHTML = currentRoom;
+         document.getElementById("displayUserRoom").innerHTML = "Current Room: " + data['room'];
+         let roomList = document.getElementById("selectRoomButtons");
+         roomList.appendChild(newRoom);  
+         newRoom.addEventListener("click", allPossibleChatRooms(), false);
       });
 
+      // function allPossibleChatRooms(){
+      //    for()
+      // }
 
-      function sendMessage(){
+      function sendMessage() {
          var msg = document.getElementById("message_input").value;
-         socketio.emit("message_to_server", {message:msg, user:currentUser, currentChatRoom: currentRoom});
+         socketio.emit("message_to_server", { message: msg, user: currentUser, room: currentRoom });
       }
 
-
-      function createChatroom(){
-         var roomName = document.getElementById("newChatroomName").value;
-         console.log(roomName);
-         socketio.emit("newChatroom", { newRoom: roomName});
-}
-
-
-      function registerNickname(){
-         showChatElements();
-         let user = document.getElementById("nickName").value; 
-         currentUser = user
-         socketio.emit("nickName", { nickNames: user});
-
-      }
-      function changeChatRoom(value){
-         currentRoom = value;
-         console.log("Current Chat Room: " + currentRoom)
-         document.getElementById("currentRoomLabel").innerHTML = value;
-         socketio.emit("currentChatRoom", {currentChatRoom: currentRoom, nickNames: currentUser});
+      function nicknameLogin() {
+         document.getElementById("chatRoom1").style.display = "inline-block";
+         document.getElementById("chatRoom2").style.display = "inline-block";
+         //socket set user
+         var nickname = document.getElementById("nickNameInput").value;
+         socketio.emit("setCurrentUser", { user: nickname });
       }
 
-
-
-      </script>
-   </head>
-   <body>
-
-      <button onclick = "registerNickname()">Nickname: </button>
-      <input type = "text" id = "nickName"/>
-
-      <div class = "textInput" style = "margin: 5px;">
-      <input type="text" id="message_input"/>
-      <button id = "sendmsgbtn"onclick="sendMessage()">send</button>
-      </div>
-
-
-
-
-
-      <input type="text" id="newChatroomName"/>
-      <button onclick="createChatroom()">Create Chatroom</button>
-
-      <h2 id = "currentRoomLabel"></h2>
-      <button id = "chatRoom1" value = "1"onclick="changeChatRoom(1)" >Chat Room 1</button>
-      <button id = "chatRoom2" value = "2"onclick="changeChatRoom(2)">Chat Room 2</button>
-
-      
-
-
-      <div id  = "roomLog"></div>
-      <div id = "loggedInUsers"></div>
-      
-
-      <div id="chatlog"></div>
-
-   </body>
-
-
-   <script>
-      document.getElementById("message_input").style.display = "none";
-      document.getElementById("chatRoom1").style.display = "none";
-      document.getElementById("chatRoom2").style.display = "none";
-      document.getElementById("sendmsgbtn").style.display = "none";
-
-
-      function showChatElements() {
-        document.getElementById("message_input").style.display = "inline-block";
-        document.getElementById("chatRoom1").style.display = "inline-block";
-        document.getElementById("chatRoom2").style.display = "inline-block";
-        document.getElementById("sendmsgbtn").style.display = "inline-block";
-
+      function changeChatRoom(value) {
+         document.getElementById("message_input").style.display = "inline-block";
+         document.getElementById("sendMessageButton").style.display = "inline-block";
+         socketio.emit("setCurrentRoom", { room: value });
       }
+
+      function createPublicChatRoom() {
+         document.getElementById("public_chatroom_name").style.display = "inline-block";
+         let new_chatroom_name = document.getElementById("public_chatroom_name").value;
+         document.getElementById("createPublicChatRoomButton").style.display = "inline-block";
+         socketio.emit("createPublicChatRoom", { room: new_chatroom_name });
+      }
+
+      function createPrivateChatroom(value) {
+         document.getElementById("private_chatroom_name").style.display = "inline-block";
+         document.getElementById("private_chatroom_password").style.display = "inline-block";
+         document.getElementById("createPrivateChatRoomButton").style.display = "inline-block";
+
+         var pass = document.getElementById("private_chatroom_password").value;
+         socketio.emit("createPrivateChatroom", { password: pass, room: value });
+      }
+
    </script>
+</head>
+
+<body>
+
+   <div class="setNickName">
+      <button id="sendNickname" onclick="nicknameLogin()">Set Nickname to
+         Continue:</button>
+      <input type="text" id="nickNameInput" />
+   </div>
+
+   <div id="selectRoomButtons">
+      <h3 id="displayUserRoom"></h3>
+      <button id="chatRoom1" value="1" onclick="changeChatRoom(1)">Chat Room
+         1</button>
+      <button id="chatRoom2" value="2" onclick="changeChatRoom(2)">Chat Room
+         2</button>
+   </div>
+
+   <div class="sendMessageClass">
+      <input type="text" id="message_input" />
+      <button id="sendMessageButton" onclick="sendMessage()">send</button>
+   </div>
+
+   <div class="createPublicChatRoomClass">
+      <input type="text" id="public_chatroom_name" />
+      <button id="createPublicChatRoomButton" onclick="createPublicChatRoom()">Create a public chatroom</button>
+   </div>
+
+   <div class="createPrivateChatRoomClass">
+      <input type="text" id="private_chatroom_name" />
+      <input type="text" id="private_chatroom_password" />
+      <button id="createPrivateChatRoomButton" onclick="createPrivateChatroom(Test)">Create a private chatroom</button>
+   </div>
+
+   <div id="chatlog"></div>
+</body>
+
+
+<script>
+   //chatroom buttons must go first
+   document.getElementById("chatRoom1").style.display = "none";
+   document.getElementById("chatRoom2").style.display = "none";
+   document.getElementById("message_input").style.display = "none";
+   document.getElementById("sendMessageButton").style.display = "none";
+
+</script>
+
 </html>
