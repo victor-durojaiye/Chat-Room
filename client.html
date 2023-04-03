@@ -31,20 +31,25 @@
          document.getElementById("chatlog").appendChild(document.createElement("hr"));
          document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
       });
+      socketio.on("roomTakenError", function(data){
+         alert("Room Name Already Taken");
+      });
+
 
       socketio.on("all_rooms_available", function(data){
-         console.log("in all rooms available");
-         console.log(data['all_rooms']);
          rooms = data['all_rooms'];
-         displayedRooms = data['all_rooms'];
 
          for (const i in rooms){
+            if (!displayedRooms.includes(rooms[i].roomName)){
             let currentRoom = rooms[i].roomName;
+            displayedRooms.push(rooms[i].roomName);
             let newRoom = document.createElement("button");
             newRoom.innerHTML = currentRoom;
             let roomList = document.getElementById("roomListDisplay");
             roomList.appendChild(newRoom);
             console.log(currentRoom);
+            }
+
          }
 
 
@@ -65,6 +70,7 @@
          const roomName = document.getElementById("room_name").value;
          const password = document.getElementById("create_password").value;
          const userName = document.getElementById("user_name_login").value;
+         console.log("three" + userName + password + roomName);
          socketio.emit("create_room", {nameOfRoom: roomName, userName: userName, chatroomPassword: password}); 
       }
 

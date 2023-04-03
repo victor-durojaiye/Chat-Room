@@ -44,10 +44,26 @@ io.sockets.on("connection", function (socket) {
         const roomName = data['nameOfRoom'];
         const userName = data['userName'];
         const password = data['chatroomPassword'];
-        console.log(data);
-        const room = {roomName, password};
-        all_rooms[roomCount++] = room;
-        io.sockets.emit("all_rooms_available", {all_rooms:all_rooms});
-     });
+
+        let roomNameExists = false;
+        for (let roomID in all_rooms) {
+          if (all_rooms.hasOwnProperty(roomID)) {
+            if (all_rooms[roomID].roomName === roomName) {
+              roomNameExists = true;
+              break;
+            }
+          }
+        }
+        
+        if (roomNameExists) {
+          // Send an error message to client using socket.emit
+          io.sockets.emit("roomTakenError",{ msg:"msg"});
+        } else {
+          // Add the new room to the all_rooms object
+          const room = {roomName, password};
+          all_rooms[roomCount++] = room;
+          io.sockets.emit("all_rooms_available", {all_rooms: all_rooms});
+        }
+      });
      
 });
