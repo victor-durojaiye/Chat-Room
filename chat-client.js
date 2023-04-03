@@ -21,7 +21,6 @@ const server = http.createServer(function (req, res) {
 });
 
 
-
 server.listen(port);
 
 // Import Socket.IO and pass our HTTP server object to it.
