@@ -5,6 +5,10 @@ const http = require("http"),
 const port = 3456;
 const file = "client.html";
 var all_rooms = {};
+var usersInRooms = {};
+var users = [];
+
+
 
 let roomCount = 0;
 // Listen for HTTP connections.  This is essentially a miniature static file server that only serves our one file, client.html, on port 3456:
@@ -32,8 +36,23 @@ const socketio = require("socket.io")(http, {
 console.log("server running");
 const io = socketio.listen(server);
 io.sockets.on("connection", function (socket) {
+
+  socket.on('login', function(data){
+    userName = data['user'];
+    if (!users.includes(userName)){
+      users.push(socket.name);
+
+
+    }
+    else{
+      console.log('usernametaken');
+    }
+
+
+  });
     // This callback runs when a new Socket.IO connection is established.
     socket.on('message_to_server', function (data) { 
+      
         // This callback runs when the server receives a new message from the client.
         console.log("message: " + data["message"]); // log it to the Node.JS output
         io.sockets.emit("message_to_client", {message: data["message"]}) // broadcast the message to other users
@@ -54,7 +73,7 @@ io.sockets.on("connection", function (socket) {
             }
           }
         }
-        
+
         if (roomNameExists) {
           // Send an error message to client using socket.emit
           io.sockets.emit("roomTakenError",{ msg:"msg"});
@@ -65,5 +84,17 @@ io.sockets.on("connection", function (socket) {
           io.sockets.emit("all_rooms_available", {all_rooms: all_rooms});
         }
       });
+
+
+      // socket.on("show_rooms", ()=>{
+      //   io.sockets.to(socket.id).emit("display_available_rooms", {all_rooms: all_rooms});
+      // });
+
+
+      //to join
+      // socket.join(roomName)
+      //to emit messages
+      // io.sockets.to(roomName).emit;
+      //store socket id in map to kick them
      
 });
