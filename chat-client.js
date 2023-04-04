@@ -4,97 +4,92 @@ const http = require("http"),
 
 const port = 3456;
 const file = "client.html";
-var all_rooms = {};
-var usersInRooms = {};
-var users = [];
-
-
-
-let roomCount = 0;
 // Listen for HTTP connections.  This is essentially a miniature static file server that only serves our one file, client.html, on port 3456:
 const server = http.createServer(function (req, res) {
     // This callback runs when a new connection is made to our HTTP server.
 
     fs.readFile(file, function (err, data) {
         // This callback runs when the client.html file has been read from the filesystem.
+
         if (err) return res.writeHead(500);
         res.writeHead(200);
         res.end(data);
-
     });
 });
-
-
 server.listen(port);
 
 // Import Socket.IO and pass our HTTP server object to it.
 const socketio = require("socket.io")(http, {
     wsEngine: 'ws'
 });
-// Attach our Socket.IO server to our HTTP server to listen
 
-console.log("server running");
+var allUsers = [];
+var allRooms = [];
+var usersToRooms = {};
+
+
+// Attach our Socket.IO server to our HTTP server to listen
 const io = socketio.listen(server);
 io.sockets.on("connection", function (socket) {
-
-  socket.on('login', function(data){
-    userName = data['user'];
-    if (!users.includes(userName)){
-      users.push(socket.name);
-
-
-    }
-    else{
-      console.log('usernametaken');
-    }
-
-
-  });
     // This callback runs when a new Socket.IO connection is established.
-    socket.on('message_to_server', function (data) { 
-      
-        // This callback runs when the server receives a new message from the client.
-        console.log("message: " + data["message"]); // log it to the Node.JS output
-        io.sockets.emit("message_to_client", {message: data["message"]}) // broadcast the message to other users
+
+    socket.on('username_to_server', function (data) {
+      user = data['user'];
+
+      if (!allUsers.includes(user)){
+        allUsers.push(user);
+        io.sockets.emit("successfulLogin", { user: user }) 
+      }
+      else{
+        io.sockets.emit("loginError", { message: "Username Taken" }) // broadcast the login error
+      }
+
     });
 
-    socket.on("create_room",function(data) {
-        
-        const roomName = data['nameOfRoom'];
-        const userName = data['userName'];
-        const password = data['chatroomPassword'];
+    socket.on('message_to_server', function (data) {
+        // This callback runs when the server receives a new message from the client.
+        console.log(data);
+        //io.to('room1').emit("message_to_client", { message: data["message"] }) // broadcast the message to other users in room1
+        io.sockets.emit("message_to_client", { message: data["message"] }) // broadcast the message to other users
+    });
 
-        let roomNameExists = false;
-        for (let roomID in all_rooms) {
-          if (all_rooms.hasOwnProperty(roomID)) {
-            if (all_rooms[roomID].roomName === roomName) {
-              roomNameExists = true;
-              break;
-            }
-          }
-        }
+    
+    socket.on('create_room', function (data) {
+      var user = data['userName'];
+      var password =  data['chatroomPassword'];
+      var roomName = data['nameOfRoom'];
+      usersToRooms[roomName] = {
+        password: password,
+        user: [user]
+      };
 
-        if (roomNameExists) {
-          // Send an error message to client using socket.emit
-          io.sockets.emit("roomTakenError",{ msg:"msg"});
-        } else {
-          // Add the new room to the all_rooms object
-          const room = {roomName, password};
-          all_rooms[roomCount++] = room;
-          io.sockets.emit("all_rooms_available", {all_rooms: all_rooms});
-        }
-      });
+      if (!allRooms.includes(roomName)){
+          allRooms.push(roomName);
 
+      }
+      else{
+        io.sockets.emit("roomNameError", { message: "Roomname Taken" }) // broadcast the login error
 
-      // socket.on("show_rooms", ()=>{
-      //   io.sockets.to(socket.id).emit("display_available_rooms", {all_rooms: all_rooms});
-      // });
+      }
+  });
+
+  socket.on('get_rooms_from_server', function (data) {
+    io.sockets.emit("give_rooms_to_client", { allRooms: allRooms }) // send all rooms to client side
+});
 
 
-      //to join
-      // socket.join(roomName)
-      //to emit messages
-      // io.sockets.to(roomName).emit;
-      //store socket id in map to kick them
-     
+socket.on('joinRoom', function (data) {
+  let roomName = data['roomName'];
+  let user = data['user'];
+  let password = data['password'];
+
+  if(password == usersToRooms[roomName].password){
+    usersToRooms[roomName].user.push(user);
+    socket.join(roomName);
+    io.to(roomName).emit("userJoinedRoom", { user: user }); 
+    console.log(usersToRooms);
+  } else {
+    // handle incorrect password
+  }
+});
 });

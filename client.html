@@ -1,136 +1,136 @@
 <!DOCTYPE html>
 <html>
+   <head>
+      <script src="/socket.io/socket.io.js"></script>
 
-<head>
+   </head>
+   <body>
+      
+      <input type="text" id="userNameInput"/>
+      <button onclick="setUsername()">Login</button>
 
-</head>
+      
+      <input type="text" placeholder="Room Name" id="createRoom"/>
+      <input type="text" placeholder = "Room Password" id="password"/>
+      <button id = "createRoomButton"  onclick="createRoom()">Create Chat Room</button>
 
-<body>
-   <input type="text" id="message_input" />
-   <button onclick="sendMessage()">Testing</button>
-   <div id="chatlog"></div>
+      <button type="submit" id="seeRooms" onclick = "displayRooms()">See rooms</button>
+      <div id="roomListDisplay"></div>
 
-   <input type="text" id="user_name_login" placeholder="Nickname">
-   <button onclick="login()">Login with Nickname</button>
-   <input type="text" id="room_name" placeholder="Room Name">
-   <input type="text" id="create_password" placeholder="Room Password">
-   <br>
-   <button type="submit" id="newRoomButton" onclick="createRoom()">New Room</button>
-   <br>
-   <button type="submit" id="join_rooms">See rooms</button>
+      <input type="text" id="message_input"/>
+      <button  id = "send" onclick="sendMessage()">send</button>
 
-   <input type="text" id="privateUserName" />
-   <button onclick="privateMessage()">Testing</button>
-   <div id="roomListDisplay"></div>
 
-</body>
 
-<script src="/socket.io/socket.io.js"></script>
-<script type="text/javascript">
-   var socketio = io.connect();
-   var currentUser = "";
+      <div id="chatlog"></div>
+   </body>
+</html>
+
+
+<script type ="text/javascript">
    var displayedRooms = [];
-   var usersInRooms = {};
 
-   document.getElementById("join_rooms").addEventListener("click", selectRoom());
+   initializeWebpage();
 
-   socketio.on("display_available_rooms", function (data) {
-      rooms = data['all_rooms'];
-      console.log("in display!");
-   });
+   function initializeWebpage(){
+      document.getElementById('message_input').style.display = "none";
+      document.getElementById('send').style.display = "none";
+      document.getElementById('createRoom').style.display = "none";
+      document.getElementById('password').style.display = "none";
+      document.getElementById('createRoomButton').style.display = "none";
+      document.getElementById('seeRooms').style.display = "none";
 
-   function selectRoom() {
-      socketio.emit("show_rooms");
    }
 
-   socketio.on("message_to_client", function (data) {
+   function setUsername(){
+      username = document.getElementById('userNameInput').value;
+      socketio.emit("username_to_server", {user:username});
+      
+   }
+
+   function sendMessage(){
+      var msg = document.getElementById("message_input").value;
+      var room = 
+      //maybe here
+      // socketio.to(roomName).emit("message_to_server",{ message:msg});
+      socketio.emit("message_to_server", {message:msg});
+   }
+
+   function createRoom(){
+      const roomName = document.getElementById("createRoom").value;
+      const password = document.getElementById("password").value;
+      const userName = document.getElementById("userNameInput").value;
+      socketio.emit("create_room", { nameOfRoom: roomName, userName: userName, chatroomPassword: password });
+      displayRooms();
+   }
+
+   function displayRooms(){
+      socketio.emit("get_rooms_from_server", {message:""});
+   }
+   function joinRoom(roomToJoin){
+      const userName = document.getElementById("userNameInput").value;
+      const password = prompt("Enter room password:");
+      socketio.emit('joinRoom', {roomName: roomToJoin, user:userName, password: password })
+   }
+
+
+
+   //////////////////////////////socket work //////////////////////////////////////////////////
+   var socketio = io.connect();
+   socketio.on("message_to_client",function(data) {
+      //Append an HR thematic break and the escaped HTML of the new message
       document.getElementById("chatlog").appendChild(document.createElement("hr"));
       document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
    });
-   socketio.on("roomTakenError", function (data) {
-      alert("Room Name Already Taken");
+
+
+   socketio.on("loginError",function(data) {
+      //display error message
+      alert(data['message']);
+   });
+   socketio.on("roomNameError",function(data) {
+      //display error message
+      alert(data['message']);
    });
 
-
-   socketio.on("all_rooms_available", function (data) {
-      rooms = data['all_rooms'];
-
+   socketio.on("give_rooms_to_client",function(data) {
+      rooms = data['allRooms'];
+      console.log(rooms);
       for (const i in rooms) {
-         if (!displayedRooms.includes(rooms[i].roomName)) {
-            let currentRoom = rooms[i].roomName;
-            displayedRooms.push(rooms[i].roomName);
+         if (!displayedRooms.includes(rooms[i])) {
+            let currentRoom = rooms[i];
+            displayedRooms.push(rooms[i]);
             let newRoom = document.createElement("button");
             newRoom.innerHTML = currentRoom;
             newRoom.setAttribute("id", currentRoom)
             newRoom.addEventListener("click", function () {
-               join_room(currentRoom);
+               joinRoom(currentRoom);
             });
             let roomList = document.getElementById("roomListDisplay");
             roomList.appendChild(newRoom);
          }
 
       }
-
-
    });
 
-   socketio.on('join_room', ({ roomName, userName }) => {
-   socketio.join('room1');
-   console.log(`User ${userName} joined room ${roomName}`);
-});
+   
+   
+   socketio.on("successfulLogin",function(data) {
+      document.getElementById('createRoom').style.display = "inline-block";
+      document.getElementById('password').style.display = "inline-block";
+      document.getElementById('createRoomButton').style.display = "inline-block";
+      document.getElementById('seeRooms').style.display = "inline-block";
 
-function join_room(roomName) {
-   const userName = document.getElementById("user_name_login").value;
 
-   if (!usersInRooms[roomName]) {
-      usersInRooms[roomName] = [userName];
-   } else {
-      usersInRooms[roomName].push(userName);
-   }
+      });
 
-   console.log(`User ${userName} joined room ${roomName}`);
-   console.log(`Users in room ${roomName}: ${usersInRooms[roomName]}`);
-   console.log(usersInRooms);
+      
+      socketio.on("userJoinedRoom",function(data) {
+      document.getElementById('message_input').style.display = "inline-block";
+      document.getElementById('send').style.display = "inline-block";
 
-   socketio.emit("usersInRoomsAppend", { usersInRooms: usersInRooms, roomName: roomName });
-}
+      });
 
-   function sendMessage() {
-      console.log("in func sendMessage");
-      var msg = document.getElementById("message_input").value;
-      socketio.emit("message_to_server", { message: msg });
-   }
 
-   function createRoom() {
-      const roomName = document.getElementById("room_name").value;
-      const password = document.getElementById("create_password").value;
-      const userName = document.getElementById("user_name_login").value;
-      socketio.emit("create_room", { nameOfRoom: roomName, userName: userName, chatroomPassword: password });
-   }
 
-   //blacklist user from website
-   function banUser(user) {
-
-   }
-
-   //send user to the lobby
-   function kickUser(user) {
-
-   }
-
-   function login() {
-      let userName = document.getElementById("user_name_login").value;
-      socketio.emit("login", {user:userName});
-   }
-
-   function privateMessage(){
-      let userName = document.getElementById('privateUserName');
-      socketio.emit("privateMessage", {from:from, to:to});
-   }
-
-   // var button =  document.getElementById('newRoomButton');
-   // button.addEventListener("click", createRoom());
-
-</script>
-
-</html>
+   </script>
