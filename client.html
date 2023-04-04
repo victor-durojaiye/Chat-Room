@@ -29,6 +29,8 @@
 
 <script type ="text/javascript">
    var displayedRooms = [];
+   var usersToRooms = {};
+
 
    initializeWebpage();
 
@@ -48,13 +50,26 @@
       
    }
 
+   function findRoomForUser(userName) {
+         for (const roomName in usersToRooms) {
+                  const room = usersToRooms[roomName];
+               if (room.user.includes(userName)) {
+               return roomName;
+            }
+         }
+
+      }
+
+
+
    function sendMessage(){
       var msg = document.getElementById("message_input").value;
-      var room = 
-      //maybe here
-      // socketio.to(roomName).emit("message_to_server",{ message:msg});
-      socketio.emit("message_to_server", {message:msg});
+      var user = document.getElementById('userNameInput').value;
+      var roomName = findRoomForUser(user)
+      
+      socketio.emit("message_to_server", {message:msg, room:roomName, user:user});
    }
+
 
    function createRoom(){
       const roomName = document.getElementById("createRoom").value;
@@ -69,8 +84,15 @@
    }
    function joinRoom(roomToJoin){
       const userName = document.getElementById("userNameInput").value;
-      const password = prompt("Enter room password:");
-      socketio.emit('joinRoom', {roomName: roomToJoin, user:userName, password: password })
+      if (usersToRooms[roomToJoin].password != ""){
+         const password = prompt("Enter room password:");
+         socketio.emit('joinRoom', {roomName: roomToJoin, user:userName, password: password })
+
+      }
+      else{
+         socketio.emit('joinRoom', {roomName: roomToJoin, user:userName, password: "" })
+
+      } 
    }
 
 
@@ -79,8 +101,13 @@
    var socketio = io.connect();
    socketio.on("message_to_client",function(data) {
       //Append an HR thematic break and the escaped HTML of the new message
+      var room = data['room'];
+      var user = data['user'];
+      var msg = data['message'];
+      console.log(data);
+
       document.getElementById("chatlog").appendChild(document.createElement("hr"));
-      document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+      document.getElementById("chatlog").appendChild(document.createTextNode(user +": " + msg));
    });
 
 
@@ -94,6 +121,8 @@
    });
 
    socketio.on("give_rooms_to_client",function(data) {
+      usersToRooms = data['usersToRooms'];
+      console.log(JSON.stringify(usersToRooms) + "UTR");
       rooms = data['allRooms'];
       console.log(rooms);
       for (const i in rooms) {
@@ -112,8 +141,6 @@
 
       }
    });
-
-   
    
    socketio.on("successfulLogin",function(data) {
       document.getElementById('createRoom').style.display = "inline-block";
@@ -122,14 +149,21 @@
       document.getElementById('seeRooms').style.display = "inline-block";
 
 
+
       });
 
       
-      socketio.on("userJoinedRoom",function(data) {
+   socketio.on("userJoinedRoom",function(data) {
+         console.log(JSON.stringify(usersToRooms));
+         console.log(data);
       document.getElementById('message_input').style.display = "inline-block";
       document.getElementById('send').style.display = "inline-block";
-
+      var user = data['user'];
+      var roomName = data['room'];
+      usersToRooms[roomName].user.push(user);
       });
+
+
 
 
 
