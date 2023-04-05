@@ -2,32 +2,198 @@
 <html>
    <head>
       <script src="/socket.io/socket.io.js"></script>
+      <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js" type="text/javascript"></script>
 
    </head>
    <body>
+      <div id="topNav"><ul>
+            <li><a>The Bear's Den</a></li>
+            <li><a id= 'displayLoggedInUser'></a></li>
+            <li><a id="allUsersInRoom"></a></li>
+         </ul>
       
-      <input type="text" id="userNameInput"/>
-      <button onclick="setUsername()">Login</button>
+      <span id = "online_users"></span>
+   </div>
 
-      
-      <input type="text" placeholder="Room Name" id="createRoom"/>
-      <input type="text" placeholder = "Room Password" id="password"/>
-      <button id = "createRoomButton"  onclick="createRoom()">Create Chat Room</button>
 
-      <button type="submit" id="seeRooms" onclick = "displayRooms()">See rooms</button>
+
+      <div id="loginClass">
+         <input type="text" id="userNameInput"/>
+         <button id="loginButton" onclick="setUsername()">Login</button>
+      </div>
+
+      <div id="buttons">
+         <input type="text" placeholder="Room Name" id="createRoom"/>
+         <input type="text" placeholder="Room Password" id="password"/>
+         <button id="createRoomButton" onclick="createRoom()">Create Chat Room</button>
+         <button type="submit" id="seeRooms" onclick="displayRooms()">See rooms</button>
+      </div>
       <div id="roomListDisplay"></div>
 
       <input type="text" id="message_input"/>
-      <button  id = "send" onclick="sendMessage()">send</button>
+      <button id="send" onclick="sendMessage()">send</button>
 
+      <button id="leave" onclick="leaveRoom()">Leave Chat Room </button>
 
-
+      <div id = "whosTyping"></div>
       <div id="chatlog"></div>
+
+
+
    </body>
 </html>
 
+<style>
 
-<script type ="text/javascript">
+
+     * {
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+         }
+         body {
+            background-color: #eaf4fc;
+         }
+         #topNav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #3c6382;
+            color: #ffffff;
+            display:inline;
+            overflow-y: auto;
+            height: 150px;
+            
+            font-size: larger;
+         }
+         #topNav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 35px;
+         }
+         #topNav li {
+            float: left;
+         }
+         button{
+            background-color: #3c6382;
+            color:white;
+            border-radius:5px;
+         }
+         #topNav a {
+            display: block;
+            padding: 8px;
+            background-color: #3c6382;
+            color: #ffffff;
+            text-decoration: none;
+         }
+         #loginClass {
+            margin: 30% auto;
+            display: block;
+            width: 500px;
+         }
+         #userNameInput {
+            width: 400px;
+            height: 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #createRoom{
+            width:200px;
+            height:30px;
+            border-radius: 3px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #createRoomButton{
+            width:150px;
+            height:30px;
+            border-radius: 3px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #seeRooms{
+            width:150px;
+            height:30px;
+            border-radius: 2px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #send{
+            width:150px;
+            height:30px;
+            border-radius: 2px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #leave{
+            width:150px;
+            height:30px;
+            border-radius: 2px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+            margin-left:5px;
+         }
+         #roomListDisplay button{
+            width:150px;
+            height:30px;
+            border-radius: 2px;
+            border: none;
+            margin:10px;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #password{
+            width:200px;
+            height:30px;
+            border-radius: 5px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+
+         #message_input{
+            width:200px;
+            height:30px;
+            border-radius: 5px;
+            margin-top:10px;
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #loginButton {
+            height: 35px;
+            font-size: 18px;
+            border: none;
+            border-radius:5px;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         #displayLoggedInUser {
+            float: right;
+            margin-right: 20px;
+            display: inline;
+         }
+         input{
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+         button{
+            border: none;
+            box-shadow: 1px 1px 1px #999;
+            outline: none;
+         }
+</style>
+<script type="text/javascript">
    var displayedRooms = [];
    var usersToRooms = {};
 
@@ -35,13 +201,30 @@
    initializeWebpage();
 
    function initializeWebpage(){
+      document.getElementById('online_users').style.display = "none"
+
       document.getElementById('message_input').style.display = "none";
       document.getElementById('send').style.display = "none";
       document.getElementById('createRoom').style.display = "none";
       document.getElementById('password').style.display = "none";
       document.getElementById('createRoomButton').style.display = "none";
       document.getElementById('seeRooms').style.display = "none";
+      document.getElementById('leave').style.display = "none";
 
+   }
+
+   message_input.addEventListener('keypress', function(){
+      console.log(document.getElementById('userNameInput').value);
+      var user = document.getElementById('userNameInput').value;
+      var room = findRoomForUser(user);
+      socketio.emit('userIsTyping', {user: user, room:room});
+
+   });
+
+   function leaveRoom(user){
+      var user = document.getElementById('userNameInput').value;
+      roomToLeave = findRoomForUser(user);
+      socketio.emit("user_leave", {user:user, roomToLeave: roomToLeave});
    }
 
    function setUsername(){
@@ -80,7 +263,8 @@
    }
 
    function displayRooms(){
-      socketio.emit("get_rooms_from_server", {message:""});
+      var currentUser = document.getElementById('userNameInput').value;
+      socketio.emit("get_rooms_from_server", {user:currentUser});
    }
    function joinRoom(roomToJoin){
       const userName = document.getElementById("userNameInput").value;
@@ -95,6 +279,102 @@
       } 
    }
 
+   function updateUsersInRooms(room){
+      const users = usersToRooms[room].user;
+      users.shift();
+
+      const userList = users.map(user => `<a href = '#' onclick="userClicked('${user}');">${user}</a>`).join(" ");
+      const roomAdmin = document.createElement("span");
+      roomAdmin.setAttribute('id', 'adminInfo')
+      roomAdmin.innerHTML = "<hr>  Room Admin: " + users[0] + " | Users in Room " + room + ": " + userList;
+      roomAdmin.style.whiteSpace = "nowrap";
+      roomAdmin.style.overflow = "auto";
+      roomAdmin.style.display = "inline";
+      document.getElementById('topNav').insertAdjacentElement("beforeend", roomAdmin);
+
+   }
+
+   function sendPrivateMessage(user){
+      console.log('success');
+      var msg = document.getElementById("message_input").value;
+      var userName = document.getElementById('userNameInput').value;
+      var userTo = user;
+      socketio.emit('privateMessage', {message:msg, user:userName, userTo:user})
+   
+   }
+
+   function userClicked(user){
+   var currentUser = document.getElementById('userNameInput').value;
+   var currentRoom = findRoomForUser(currentUser);
+   console.log('admin' + usersToRooms[currentRoom].user[0]);
+   if(currentUser == usersToRooms[currentRoom].user[0]){
+         const kickUserTemp = document.createElement('button');
+         const adminPrivelage = document.createElement('p');
+         adminPrivelage.textContent = "Admin Buttons:";
+         kickUserTemp.style.height = "30px";
+         kickUserTemp.style.backgroundColor = "Grey";
+
+
+         kickUserTemp.textContent = "Kick " + user + " temporarily";
+         kickUserTemp.onclick = function() {
+            kickUser(user);
+         }
+
+            const banUserBtn = document.createElement('button');
+            banUserBtn.textContent = "Ban " + user + " permanently";
+
+            banUserBtn.onclick = function() {
+               banUser(user);
+            }
+
+            banUserBtn.style.height = "30px";
+            banUserBtn.style.marginLeft = "5px";
+            banUserBtn.style.backgroundColor = "Grey";
+
+
+
+            document.getElementById('buttons').appendChild(adminPrivelage);
+            document.getElementById('buttons').appendChild(kickUserTemp);
+            document.getElementById('buttons').appendChild(banUserBtn);
+         }
+         else{
+            const nonAdminPrivelages = document.createElement('p');
+            nonAdminPrivelages.textContent = "Non-Admin Buttons:";
+            document.getElementById('buttons').appendChild(nonAdminPrivelages);
+
+
+            const sendPrivateMessageBtn = document.createElement('button');
+            sendPrivateMessageBtn.textContent = "Send Private Message to " + user;
+
+            sendPrivateMessageBtn.onclick = function() {
+               sendPrivateMessage(user);
+            }
+
+            sendPrivateMessageBtn.style.height = "30px";
+            sendPrivateMessageBtn.style.marginLeft = "5px";
+            sendPrivateMessageBtn.style.backgroundColor = "Grey";
+
+            document.getElementById('buttons').appendChild(sendPrivateMessageBtn);
+         }
+   
+   
+
+
+   }
+   function kickUser(user){
+      leaveRoom(user);
+   }
+
+   function banUser(user){
+      var room = findRoomForUser(user);
+      console.log(user + room);
+      socketio.emit('banUser', {userTo:user, room:room});
+   }
+
+   function userLeftSuccessfully(room){
+      document.getElementById('chatlog').innerHTML = '';
+   }
+
 
 
    //////////////////////////////socket work //////////////////////////////////////////////////
@@ -104,67 +384,119 @@
       var room = data['room'];
       var user = data['user'];
       var msg = data['message'];
+      
       console.log(data);
 
-      document.getElementById("chatlog").appendChild(document.createElement("hr"));
-      document.getElementById("chatlog").appendChild(document.createTextNode(user +": " + msg));
+      document.getElementById('chatlog').innerHTML += "&#128994<b>" + user + ": " + "</b>" + msg + "<br>";
    });
 
+
+   socketio.on("userLeftRoom",function(data) {
+      var parent = document.getElementById('roomListDisplay');
+      document.getElementById('leave').style.display = "none";
+      document.getElementById('message_input').style.display = "none";
+      document.getElementById('send').style.display = "none";
+
+      let user = data['user'];
+      let roomToLeave = data['roomToLeave'];
+      userLeftSuccessfully(data['room']);
+
+
+
+      var children = parent.children;
+         for (var i = 0; i < children.length; i++) {
+            children[i].style.display = "none";
+  }
+
+   });
+
+   socketio.on("announceLeave",function(data) {
+      let user = data['user'];
+      let room = data['room'];
+      document.getElementById('chatlog').innerHTML += "&#128308 <b>" + user + " has left Room " + room + "</b>" + "<br>";
+
+   });
 
    socketio.on("loginError",function(data) {
-      //display error message
-      alert(data['message']);
+      alert("Username Already Taken");
    });
    socketio.on("roomNameError",function(data) {
-      //display error message
       alert(data['message']);
    });
 
    socketio.on("give_rooms_to_client",function(data) {
       usersToRooms = data['usersToRooms'];
-      console.log(JSON.stringify(usersToRooms) + "UTR");
-      rooms = data['allRooms'];
-      console.log(rooms);
-      for (const i in rooms) {
-         if (!displayedRooms.includes(rooms[i])) {
-            let currentRoom = rooms[i];
-            displayedRooms.push(rooms[i]);
-            let newRoom = document.createElement("button");
-            newRoom.innerHTML = currentRoom;
-            newRoom.setAttribute("id", currentRoom)
-            newRoom.addEventListener("click", function () {
-               joinRoom(currentRoom);
-            });
-            let roomList = document.getElementById("roomListDisplay");
-            roomList.appendChild(newRoom);
-         }
+  var rooms = data['allRooms'];
 
+  for (const i in rooms) {
+    if (!displayedRooms.includes(rooms[i])) {
+      let currentRoom = rooms[i];
+      displayedRooms.push(rooms[i]);
+
+      if($("#"+currentRoom).length > 0){
+         console.log("not in here");
       }
-   });
+      
+      let newRoom = document.createElement("button");
+      newRoom.innerHTML = currentRoom;
+      newRoom.setAttribute("id", currentRoom);
+      newRoom.addEventListener("click", function() {
+        joinRoom(currentRoom);
+      });
+      let roomList = document.getElementById("roomListDisplay");
+      roomList.appendChild(newRoom);
+      
+    }
+  }
+});
    
-   socketio.on("successfulLogin",function(data) {
+socketio.on("successfulLogin",function(data) {
+      document.getElementById('online_users').style.display = "inline-block"
       document.getElementById('createRoom').style.display = "inline-block";
       document.getElementById('password').style.display = "inline-block";
       document.getElementById('createRoomButton').style.display = "inline-block";
       document.getElementById('seeRooms').style.display = "inline-block";
+      document.getElementById('userNameInput').style.display = "none";
+      document.getElementById('loginButton').style.display = "none";
 
-
-
+      document.getElementById('displayLoggedInUser').innerHTML = "Logged in as " +data['user'];
+      // document.getElementById('online_users').innerHTML += "&#128308 " + data['user'];
+      });
+      socketio.on("userBannedFailure",function(data) {
+         alert('User permanently banned from this room');
       });
 
+      socketio.on("isTyping",function(data) {
+         document.getElementById('whosTyping').innerHTML = '<p>' + data['user'] + ' is typing ... </p>';
+      });
       
    socketio.on("userJoinedRoom",function(data) {
-         console.log(JSON.stringify(usersToRooms));
-         console.log(data);
+      console.log(JSON.stringify(usersToRooms));
+      console.log(data);
       document.getElementById('message_input').style.display = "inline-block";
       document.getElementById('send').style.display = "inline-block";
+      document.getElementById('leave').style.display = "inline-block";
+      document.getElementById('')
       var user = data['user'];
       var roomName = data['room'];
       usersToRooms[roomName].user.push(user);
+      updateUsersInRooms(roomName);
       });
 
-
-
-
+   socketio.on("message_to_user",function(data) {
+      console.log('enteredprivate');
+      var user = data['user'];
+      var msg = data['message'];
+      console.log(data);
+      document.getElementById("chatlog").appendChild(document.createElement("br"));
+      document.getElementById("chatlog").appendChild(document.createTextNode("Private Message from " + user +": " + msg));
+      });
+      socketio.on("wrongPassword",function(data) {
+         alert("Wrong Password for Room");
+      });
+      socketio.on("hideBan",function(data) {
+         alert('hitalone');
+         document.getElementById('user').style.display = "none";
+      });
 
    </script>
