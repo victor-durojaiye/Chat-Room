@@ -28,8 +28,9 @@
          <button id="createRoomButton" onclick="createRoom()">Create Chat Room</button>
          <button type="submit" id="seeRooms" onclick="displayRooms()">See rooms</button>
       </div>
+      <span id = "emojiInfo">Available emojis: ":)" = &#128512;, ":(" = &#128577;, ":/" = &#128533; , ":|" = &#128529; ":X" = &#10060; ":?"  = &#10067; ":pointer" = &#128070;</span>
+
       <div id="roomListDisplay"></div>
-      <div id = "emojiInfo">Available emojis: ":)" = &#128512;, ":(" = &#128577;, ":/" = &#128533; , ":|" = &#128529;</div>
 
       <input type="text" id="message_input"/>
       <button id="send" onclick="sendMessage()">send</button>
@@ -299,9 +300,8 @@
       document.getElementById('topNav').insertAdjacentElement("beforeend", roomAdmin);
 
    }
-
+   //send private message to user, from UserClicked(user) function
    function sendPrivateMessage(user){
-      console.log('success');
       var msg = document.getElementById("message_input").value;
       var userName = document.getElementById('userNameInput').value;
       var userTo = user;
@@ -311,7 +311,6 @@
 
    function userClicked(user){
    var userName = document.getElementById('userNameInput').value;
-
    if (userName != user){
    document.getElementById('userNameInput').style.backgroundColor = "green";
    var currentUser = document.getElementById('userNameInput').value;
@@ -319,86 +318,79 @@
    console.log('admin' + usersToRooms[currentRoom].user[0]);
    if(currentUser == usersToRooms[currentRoom].user[0]){
          const kickUserTemp = document.createElement('button');
+         const banUserBtn = document.createElement('button');
          const adminPrivelage = document.createElement('p');
+         const sendPrivateMessageBtn = document.createElement('button');
+
          adminPrivelage.textContent = "Admin Buttons:";
+
+         kickUserTemp.textContent = "Kick " + user;
+         banUserBtn.textContent = "Ban " + user + " permanently";
+         sendPrivateMessageBtn.textContent = "Send Private Message to " + user + '( put private message in message box below)';
+
          kickUserTemp.style.height = "30px";
          kickUserTemp.style.backgroundColor = "Grey";
 
+         banUserBtn.style.height = "30px";
+         banUserBtn.style.marginLeft = "5px";
+         banUserBtn.style.backgroundColor = "Grey";
+         
 
-         kickUserTemp.textContent = "Kick " + user + " temporarily";
+         sendPrivateMessageBtn.style.height = "30px";
+         sendPrivateMessageBtn.style.marginLeft = "5px";
+         sendPrivateMessageBtn.style.marginTop = "5px";
+         sendPrivateMessageBtn.style.backgroundColor = "Grey";
+
          kickUserTemp.onclick = function() {
             kickUser(user);
          }
 
-            const banUserBtn = document.createElement('button');
-            banUserBtn.textContent = "Ban " + user + " permanently";
+         banUserBtn.onclick = function() {
+            banUser(user);
+         }
 
-            banUserBtn.onclick = function() {
-               banUser(user);
-            }
-
-            banUserBtn.style.height = "30px";
-            banUserBtn.style.marginLeft = "5px";
-            banUserBtn.style.backgroundColor = "Grey";
-
-
-
-
-            const sendPrivateMessageBtn = document.createElement('button');
-            sendPrivateMessageBtn.textContent = "Send Private Message to " + user + '(put private message in message box below)';
-
-            sendPrivateMessageBtn.onclick = function() {
-               sendPrivateMessage(user);
-            }
-            sendPrivateMessageBtn.style.height = "30px";
-            sendPrivateMessageBtn.style.marginLeft = "5px";
-            sendPrivateMessageBtn.style.marginTop = "5px";
-
-            sendPrivateMessageBtn.style.backgroundColor = "Grey";
-
-            document.getElementById('buttons').appendChild(kickUserTemp);
-            document.getElementById('buttons').appendChild(banUserBtn);
-            document.getElementById('buttons').appendChild(sendPrivateMessageBtn);
-
+         sendPrivateMessageBtn.onclick = function() {
+            sendPrivateMessage(user);
+         }
+         document.getElementById('buttons').appendChild(kickUserTemp);
+         document.getElementById('buttons').appendChild(banUserBtn);
+         document.getElementById('buttons').appendChild(sendPrivateMessageBtn);
          }
          else{
             const nonAdminPrivelages = document.createElement('p');
             nonAdminPrivelages.textContent = "Non-Admin Buttons:";
             document.getElementById('buttons').appendChild(nonAdminPrivelages);
-
-
             const sendPrivateMessageBtn = document.createElement('button');
             sendPrivateMessageBtn.textContent = "Send Private Message to " + user + '(put private message in message box below)';
-
             sendPrivateMessageBtn.onclick = function() {
                sendPrivateMessage(user);
             }
-
             sendPrivateMessageBtn.style.height = "30px";
             sendPrivateMessageBtn.style.marginLeft = "5px";
             sendPrivateMessageBtn.style.backgroundColor = "Grey";
-
             document.getElementById('buttons').appendChild(sendPrivateMessageBtn);
          }
       }
    }
+
    function kickUser(userName){
-      socketio.emit("kick_user", {user: userName});
+      var room =  findRoomForUser(userName);
+      console.log(room+ "first");
+      socketio.emit("kick_user", {user: userName, room:room});
    } 
+   
 
    function banUser(user){
-      var room = findRoomForUser(user);
+      var room = findRoomForUser(user);      
+      socketio.emit("ban_user", {user: user, room: room});
       console.log(user + room);
       kickUser(user);
-      
-      socketio.emit('banUser', {userTo:user, room:room});
+      //document.getElementById('message_input').style.display = "none";
    }
 
    function userLeftSuccessfully(room){
       document.getElementById('chatlog').innerHTML = '';
    }
-
-
 
    //////////////////////////////socket work //////////////////////////////////////////////////
    var socketio = io.connect();
@@ -411,6 +403,7 @@
    });
 
    socketio.on("userLeftRoom",function(data) {
+      // var parent = document.getElementById('roomListDisplay');
       document.getElementById('leave').style.display = "none";
       document.getElementById('message_input').style.display = "none";
       document.getElementById('send').style.display = "none";
@@ -420,17 +413,27 @@
       userLeftSuccessfully(data['room']);
    });
 
+   socketio.on("kicked_user", function(data){
+      alert("Successfully kicked user.");
+   });
+   
    socketio.on("announceLeave",function(data) {
       let user = data['user'];
       let room = data['room'];
       document.getElementById('chatlog').innerHTML += "&#128308 <b>" + user + " has left Room " + room + "</b>" + "<br>";
 
    });
+   socketio.on("kickIndividualUser",function(data) {
+      console.log(data['room']);
+      alert("You've been kicked");
+      document.getElementById('roomListDisplay').style.display = "block";
+      document.getElementById('chatlog').innerHTML = "";
 
-   socketio.on("kick_user", function(data){
-      const user = data['user'];
-      socketio.emit('user_leave', {user: user});
-   });  
+      document.getElementById('leave').style.display = "none";
+      document.getElementById('message_input').style.display = "none";
+      document.getElementById('send').style.display = "none";      
+   });
+   
 
    socketio.on("loginError",function(data) {
       alert("Username Already Taken");
@@ -508,8 +511,6 @@ socketio.on("successfulLogin",function(data) {
          document.getElementById("chatlog").appendChild(userLink);
          document.getElementById(user + '1').innerHTML += " joined the room";
          document.getElementById("chatlog").appendChild(document.createElement("br"))
-
-
       }
 
 

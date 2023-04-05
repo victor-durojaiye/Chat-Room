@@ -26,9 +26,8 @@ const socketio = require("socket.io")(http, {
 var allUsers = [];
 var allRooms = [];
 var usersToRooms = {};
-
+//var blackList = {};
 var connectedUsers = {};
-
 var bannedUsers = {};
 
 
@@ -44,7 +43,6 @@ io.sockets.on("connection", function (socket) {
       //here
       user = data['user'];
       connectedUsers[data.user] = socket.id;
-      console.log(JSON.stringify(connectedUsers));
       if (!allUsers.includes(user)){
         allUsers.push(user);
 
@@ -66,18 +64,33 @@ io.sockets.on("connection", function (socket) {
         if (data['message'].includes(":)")){
           data['message'] = data['message'].replace(":)", "&#128512");
         }
-        else if(data['message'].includes(":(")){
+         if(data['message'].includes(":(")){
           data['message'] = data['message'].replace(":(", "&#128577");
 
         }
-        else if(data['message'].includes(":/")){
+         if(data['message'].includes(":/")){
           data['message'] = data['message'].replace(":/", "&#128533");
 
         }
-        else if(data['message'].includes(":|")){
+         if(data['message'].includes(":|")){
           data['message'] = data['message'].replace(":|", "&#128529");
 
         }
+         if(data['message'].includes(":X")){
+          data['message'] = data['message'].replace(":X", "&#10060");
+
+        }
+
+        if(data['message'].includes(":?")){
+          data['message'] = data['message'].replace(":?", "&#10067");
+
+        }
+        if(data['message'].includes(":pointer")){
+          data['message'] = data['message'].replace(":pointer", "&#128070");
+
+        }
+
+        
  
  
         io.to(data['room']).emit('message_to_client', {message: data['message'], user: data['user'], room: data['room']})
@@ -122,22 +135,20 @@ socket.on('privateMessage', function(data){
 });
 
 socket.on('user_leave', function (data) {
+  console.log("in hereeeeee");
   let user = data['user'];
   let room = data['roomToLeave'];
   var recipientSocketId = connectedUsers[user];
   socket.leave(room);
   io.to(recipientSocketId).emit('userLeftRoom', { user: user, room: room})
-  
   io.to(room).emit('give_rooms_to_client', {allRooms: allRooms, usersToRooms: usersToRooms})
-
   io.to(room).emit('announceLeave', {room: room, user: user})
-
 
 });
 
 
-socket.on('banUser', function (data) {
-  let user = data['userTo'];
+socket.on('ban_user', function (data) {
+  let user = data['user'];
   let room = data['room'];
   usersToRooms[room] = {
     bannedUsers: [user]
@@ -154,9 +165,16 @@ socket.on('userIsTyping', function (data) {
 });
 
 
-io.on("kick_user", (socket)=>{
-  const user= data['user'];
-  socket.emit('user_leave', {user: user});
+socket.on("kick_user", function(data){
+  const room = data['room'];
+  const user = data['user'];
+  var socketID = connectedUsers[user];
+
+  socket.leave(socketID)
+
+  socket.emit("kicked_user");
+  io.to(socketID).emit('kickIndividualUser', { msg: 'kicked', room:room})
+
 });  
 
 socket.on('joinRoom', function (data) {
@@ -166,10 +184,9 @@ socket.on('joinRoom', function (data) {
   let password = data['password'];
   var recipientSocketId = connectedUsers[user];
   if(usersToRooms[roomName].bannedUsers == user){
-    io.to(roomName).emit("userBannedFailure", { message: ""}); 
+    io.to(roomName).emit("userBannedFailure", { message: "This user is banned"}); 
 
   }
-
   else if (usersToRooms[roomName].password == ""){
     usersToRooms[roomName].user.push(user);
     socket.join(roomName);
@@ -177,9 +194,7 @@ socket.on('joinRoom', function (data) {
     io.to(roomName).emit("updateUsersFinal", {user:user}); 
 
   }
-
   else if(password == usersToRooms[roomName].password){
-
     usersToRooms[roomName].user.push(user);
     socket.join(roomName);
     io.to(recipientSocketId).emit("userJoinedRoom", { user: user, room:roomName }); 
