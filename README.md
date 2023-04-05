@@ -20,7 +20,7 @@ If a user would like to send a private message/ban/kick to another user, they ca
  Users are able to leave rooms, and join other rooms.
  
  For the creative portion, we thought we'd make our chat room more "modern", by adding a "X is typing" feature which shows other users in the room 
- who is about to send a message. On top of this, we added some of the most common emojis, and the unicode inputs you must use in order to put an emoji in your message. 
+ who is about to send a message. On top of this, we added some of the most popular emojis, and the unicode inputs you must use in order to put an emoji in your message. 
  This took us ~2hours to do.
  
  Thank you to the TAs for their help throughout this project, and for taking the time to grade this.
