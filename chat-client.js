@@ -74,6 +74,11 @@ io.sockets.on("connection", function (socket) {
           data['message'] = data['message'].replace(":/", "&#128533");
 
         }
+        else if(data['message'].includes(":|")){
+          data['message'] = data['message'].replace(":|", "&#128529");
+
+        }
+ 
  
         io.to(data['room']).emit('message_to_client', {message: data['message'], user: data['user'], room: data['room']})
         
@@ -135,10 +140,10 @@ socket.on('banUser', function (data) {
   let user = data['userTo'];
   let room = data['room'];
   usersToRooms[room] = {
-    bannedUsers: user
+    bannedUsers: [user]
   };
   var socketID = connectedUsers[user];
-  io.to(socketID).emit('ban_user', {user:user})
+  io.to(socketID).emit('hideBan', {user:user})
 
 });
 
@@ -149,12 +154,9 @@ socket.on('userIsTyping', function (data) {
 });
 
 
-socket.on("kick_user", function(data){
-  const user = data['user'];
-  setTimeout(() => socket.disconnect(true), 5000);
-  var recipientSocketId = connectedUsers[user];
-  console.log(recipientSocketId + "RSI");
-  io.to(recipientSocketId).emit("banNotification", {user: user});
+io.on("kick_user", (socket)=>{
+  const user= data['user'];
+  socket.emit('user_leave', {user: user});
 });  
 
 socket.on('joinRoom', function (data) {

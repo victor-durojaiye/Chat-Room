@@ -29,7 +29,7 @@
          <button type="submit" id="seeRooms" onclick="displayRooms()">See rooms</button>
       </div>
       <div id="roomListDisplay"></div>
-      <div id = "emojiInfo">Available emojis: ":)" = &#128512;, ":(" = &#128577;, ":/" = &#128533;</div>
+      <div id = "emojiInfo">Available emojis: ":)" = &#128512;, ":(" = &#128577;, ":/" = &#128533; , ":|" = &#128529;</div>
 
       <input type="text" id="message_input"/>
       <button id="send" onclick="sendMessage()">send</button>
@@ -410,9 +410,7 @@
       document.getElementById('chatlog').innerHTML += "&#128994<b>" + user + ": " + "</b>" + msg + "<br>";
    });
 
-
    socketio.on("userLeftRoom",function(data) {
-      var parent = document.getElementById('roomListDisplay');
       document.getElementById('leave').style.display = "none";
       document.getElementById('message_input').style.display = "none";
       document.getElementById('send').style.display = "none";
@@ -420,14 +418,6 @@
       let user = data['user'];
       let roomToLeave = data['roomToLeave'];
       userLeftSuccessfully(data['room']);
-
-
-
-      var children = parent.children;
-         for (var i = 0; i < children.length; i++) {
-            children[i].style.display = "none";
-  }
-
    });
 
    socketio.on("announceLeave",function(data) {
@@ -436,6 +426,11 @@
       document.getElementById('chatlog').innerHTML += "&#128308 <b>" + user + " has left Room " + room + "</b>" + "<br>";
 
    });
+
+   socketio.on("kick_user", function(data){
+      const user = data['user'];
+      socketio.emit('user_leave', {user: user});
+   });  
 
    socketio.on("loginError",function(data) {
       alert("Username Already Taken");
