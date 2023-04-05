@@ -368,6 +368,8 @@
    function banUser(user){
       var room = findRoomForUser(user);
       console.log(user + room);
+      kickUser(user);
+      
       socketio.emit('banUser', {userTo:user, room:room});
    }
 
@@ -384,9 +386,6 @@
       var room = data['room'];
       var user = data['user'];
       var msg = data['message'];
-      
-      console.log(data);
-
       document.getElementById('chatlog').innerHTML += "&#128994<b>" + user + ": " + "</b>" + msg + "<br>";
    });
 

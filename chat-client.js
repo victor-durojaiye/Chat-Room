@@ -63,12 +63,16 @@ io.sockets.on("connection", function (socket) {
 
     socket.on('message_to_server', function (data) {
         // This callback runs when the server receives a new message from the client.
-        if (data['message'] == ":)"){
-          data['message'] = "&#128512";
+        if (data['message'].includes(":)")){
+          data['message'] = data['message'].replace(":)", "&#128512");
         }
+        else if(data['message'].includes(":(")){
+          data['message'] = data['message'].replace(":(", "&#128577");
+
+        }
+ 
         io.to(data['room']).emit('message_to_client', {message: data['message'], user: data['user'], room: data['room']})
         
-        // io.sockets.emit("message_to_client", { message: data["message"], user:data['user'], room: data['room']}) // broadcast the message to other users
     });
 
     
