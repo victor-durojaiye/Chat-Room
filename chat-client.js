@@ -154,7 +154,7 @@ socket.on('ban_user', function (data) {
     bannedUsers: [user]
   };
   var socketID = connectedUsers[user];
-  io.to(socketID).emit('hideBan', {user:user})
+  io.to(socketID).emit('hideBan', {user:user, room:room})
 
 });
 
