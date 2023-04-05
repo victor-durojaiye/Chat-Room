@@ -3,7 +3,7 @@
    <head>
       <script src="/socket.io/socket.io.js"></script>
       <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js" type="text/javascript"></script>
-
+      <title>The Bear's Den</title>
    </head>
    <body>
       <div id="topNav"><ul>
@@ -29,6 +29,7 @@
          <button type="submit" id="seeRooms" onclick="displayRooms()">See rooms</button>
       </div>
       <div id="roomListDisplay"></div>
+      <div id = "emojiInfo">Available emojis: ":)" = &#128512;, ":(" = &#128577;, ":/" = &#128533;</div>
 
       <input type="text" id="message_input"/>
       <button id="send" onclick="sendMessage()">send</button>
@@ -51,6 +52,9 @@
          }
          body {
             background-color: #eaf4fc;
+         }
+         #emojiInfo{
+            color:#3c6382;
          }
          #topNav {
             position: fixed;
@@ -202,6 +206,8 @@
 
    function initializeWebpage(){
       document.getElementById('online_users').style.display = "none"
+      document.getElementById('emojiInfo').style.display = "none"
+
 
       document.getElementById('message_input').style.display = "none";
       document.getElementById('send').style.display = "none";
@@ -286,7 +292,7 @@
       const userList = users.map(user => `<a href = '#' onclick="userClicked('${user}');">${user}</a>`).join(" ");
       const roomAdmin = document.createElement("span");
       roomAdmin.setAttribute('id', 'adminInfo')
-      roomAdmin.innerHTML = "<hr>  Room Admin: " + users[0] + " | Users in Room " + room + ": " + userList;
+      roomAdmin.innerHTML = "<hr>  Room Admin: " + users[0] + " | Users in Room " + room + ": (click on name of user for actions)" + userList;
       roomAdmin.style.whiteSpace = "nowrap";
       roomAdmin.style.overflow = "auto";
       roomAdmin.style.display = "inline";
@@ -304,6 +310,10 @@
    }
 
    function userClicked(user){
+   var userName = document.getElementById('userNameInput').value;
+
+   if (userName != user){
+   document.getElementById('userNameInput').style.backgroundColor = "green";
    var currentUser = document.getElementById('userNameInput').value;
    var currentRoom = findRoomForUser(currentUser);
    console.log('admin' + usersToRooms[currentRoom].user[0]);
@@ -333,9 +343,23 @@
 
 
 
-            document.getElementById('buttons').appendChild(adminPrivelage);
+
+            const sendPrivateMessageBtn = document.createElement('button');
+            sendPrivateMessageBtn.textContent = "Send Private Message to " + user + '(put private message in message box below)';
+
+            sendPrivateMessageBtn.onclick = function() {
+               sendPrivateMessage(user);
+            }
+            sendPrivateMessageBtn.style.height = "30px";
+            sendPrivateMessageBtn.style.marginLeft = "5px";
+            sendPrivateMessageBtn.style.marginTop = "5px";
+
+            sendPrivateMessageBtn.style.backgroundColor = "Grey";
+
             document.getElementById('buttons').appendChild(kickUserTemp);
             document.getElementById('buttons').appendChild(banUserBtn);
+            document.getElementById('buttons').appendChild(sendPrivateMessageBtn);
+
          }
          else{
             const nonAdminPrivelages = document.createElement('p');
@@ -344,7 +368,7 @@
 
 
             const sendPrivateMessageBtn = document.createElement('button');
-            sendPrivateMessageBtn.textContent = "Send Private Message to " + user;
+            sendPrivateMessageBtn.textContent = "Send Private Message to " + user + '(put private message in message box below)';
 
             sendPrivateMessageBtn.onclick = function() {
                sendPrivateMessage(user);
@@ -356,14 +380,11 @@
 
             document.getElementById('buttons').appendChild(sendPrivateMessageBtn);
          }
-   
-   
-
-
+      }
    }
-   function kickUser(user){
-      leaveRoom(user);
-   }
+   function kickUser(userName){
+      socketio.emit("kick_user", {user: userName});
+   } 
 
    function banUser(user){
       var room = findRoomForUser(user);
@@ -450,6 +471,7 @@
 });
    
 socketio.on("successfulLogin",function(data) {
+
       document.getElementById('online_users').style.display = "inline-block"
       document.getElementById('createRoom').style.display = "inline-block";
       document.getElementById('password').style.display = "inline-block";
@@ -459,7 +481,6 @@ socketio.on("successfulLogin",function(data) {
       document.getElementById('loginButton').style.display = "none";
 
       document.getElementById('displayLoggedInUser').innerHTML = "Logged in as " +data['user'];
-      // document.getElementById('online_users').innerHTML += "&#128308 " + data['user'];
       });
       socketio.on("userBannedFailure",function(data) {
          alert('User permanently banned from this room');
@@ -470,17 +491,43 @@ socketio.on("successfulLogin",function(data) {
       });
       
    socketio.on("userJoinedRoom",function(data) {
-      console.log(JSON.stringify(usersToRooms));
-      console.log(data);
+      document.getElementById('emojiInfo').style.display = "inline-block"
+
       document.getElementById('message_input').style.display = "inline-block";
       document.getElementById('send').style.display = "inline-block";
       document.getElementById('leave').style.display = "inline-block";
-      document.getElementById('')
       var user = data['user'];
       var roomName = data['room'];
       usersToRooms[roomName].user.push(user);
       updateUsersInRooms(roomName);
       });
+
+      function updateUsersFinal(user){
+
+         document.getElementById("chatlog").appendChild(document.createElement("br"));
+         const userLink = document.createElement("a");
+         userLink.href = "#";
+         userLink.onclick = () => userClicked(user);
+         userLink.textContent = user;
+         userLink.setAttribute('id', user + '1');
+         document.getElementById("chatlog").appendChild(userLink);
+         document.getElementById(user + '1').innerHTML += " joined the room";
+         document.getElementById("chatlog").appendChild(document.createElement("br"))
+
+
+      }
+
+
+      socketio.on("updateUsersFinal", function(data) {
+      var user = data['user'];
+      updateUsersFinal(user);
+      });
+
+   socketio.on("ban_user", function(data){
+      const user = data["user"];
+      alert(user + "has been BANNED! ");
+      
+   });
 
    socketio.on("message_to_user",function(data) {
       console.log('enteredprivate');
@@ -492,10 +539,6 @@ socketio.on("successfulLogin",function(data) {
       });
       socketio.on("wrongPassword",function(data) {
          alert("Wrong Password for Room");
-      });
-      socketio.on("hideBan",function(data) {
-         alert('hitalone');
-         document.getElementById('user').style.display = "none";
       });
 
    </script>

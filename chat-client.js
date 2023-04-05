@@ -70,6 +70,10 @@ io.sockets.on("connection", function (socket) {
           data['message'] = data['message'].replace(":(", "&#128577");
 
         }
+        else if(data['message'].includes(":/")){
+          data['message'] = data['message'].replace(":/", "&#128533");
+
+        }
  
         io.to(data['room']).emit('message_to_client', {message: data['message'], user: data['user'], room: data['room']})
         
@@ -134,7 +138,7 @@ socket.on('banUser', function (data) {
     bannedUsers: user
   };
   var socketID = connectedUsers[user];
-  io.to(socketID).emit('hideBan', {user:user})
+  io.to(socketID).emit('ban_user', {user:user})
 
 });
 
@@ -144,6 +148,14 @@ socket.on('userIsTyping', function (data) {
   io.to(room).emit('isTyping', { user: data['user']})
 });
 
+
+socket.on("kick_user", function(data){
+  const user = data['user'];
+  setTimeout(() => socket.disconnect(true), 5000);
+  var recipientSocketId = connectedUsers[user];
+  console.log(recipientSocketId + "RSI");
+  io.to(recipientSocketId).emit("banNotification", {user: user});
+});  
 
 socket.on('joinRoom', function (data) {
 
@@ -159,7 +171,9 @@ socket.on('joinRoom', function (data) {
   else if (usersToRooms[roomName].password == ""){
     usersToRooms[roomName].user.push(user);
     socket.join(roomName);
-    io.to(roomName).emit("userJoinedRoom", { user: user, room:roomName }); 
+    io.to(recipientSocketId).emit("userJoinedRoom", { user: user, room:roomName }); 
+    io.to(roomName).emit("updateUsersFinal", {user:user}); 
+
   }
 
   else if(password == usersToRooms[roomName].password){
@@ -167,8 +181,7 @@ socket.on('joinRoom', function (data) {
     usersToRooms[roomName].user.push(user);
     socket.join(roomName);
     io.to(recipientSocketId).emit("userJoinedRoom", { user: user, room:roomName }); 
-    console.log(usersToRooms);
-    
+    io.to(roomName).emit("updateUsersFinal", {user:user});     
   } else {
     io.to(recipientSocketId).emit("wrongPassword", { user: user, room:roomName }); 
 
