@@ -5,6 +5,22 @@
 
 501516 @victordurojaiye
 
+## Grading
+
+Grade: 34/50
+
+-5pts: No package.json file included 
+
+-1pts: No .git-ignore file provided
+
+-2pts: Cannot see all users in the room
+
+-2pts: Cannot send private message to another user
+
+-1pts: The whole site was hard to navigate and confusing
+
+-5pts: Room admin does not change when creator leaves the room
+
 This is our example of a node.js/socket.io chatroom. In this, users can login (only one user can have the same name at one time). Upon logging in, they
 can create a chatroom with or without a password, or they may see all available chatrooms. Upon joining a chatroom, the user who joined is echoed to everyone
 in the chatroom, and they are then able to send messages to other users in the room.
